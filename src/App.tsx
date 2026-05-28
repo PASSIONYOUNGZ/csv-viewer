@@ -6,9 +6,10 @@ import FilterPanel from './components/FilterPanel';
 import DataTable from './components/DataTable';
 import ExportButton from './components/ExportButton';
 import StatusBar from './components/StatusBar';
+import TestDataPanel from './components/TestDataPanel';
 
 export default function App() {
-  const { csvData, isLoading, error, progress, parseCSV, clearData } = useCSV();
+  const { csvData, isLoading, error, progress, parseCSV, clearData, loadTestCSV } = useCSV();
   const { filters, filteredRows, addFilter, removeFilter, clearFilters, hasFilters } = useFilters(csvData);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
@@ -43,7 +44,18 @@ export default function App() {
         )}
 
         {!csvData && !isLoading && !error && (
-          <FileUpload onUpload={parseCSV} isLoading={isLoading} />
+          <>
+            <TestDataPanel onLoad={loadTestCSV} />
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-3 bg-gray-100 text-gray-400">或者从本地上传</span>
+              </div>
+            </div>
+            <FileUpload onUpload={parseCSV} isLoading={isLoading} />
+          </>
         )}
 
         {csvData && !isLoading && (

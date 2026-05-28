@@ -9,6 +9,19 @@ export function useCSV() {
   const [progress, setProgress] = useState(0);
   const abortRef = useRef<(() => void) | null>(null);
 
+  const setDataFromRows = useCallback((rows: CSVRow[], fileName: string) => {
+    const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+    setCsvData({
+      headers,
+      rows,
+      fileName,
+      fileSize: 0,
+      totalRows: rows.length,
+    });
+    setIsLoading(false);
+    setProgress(100);
+  }, []);
+
   const parseCSV = useCallback((file: File) => {
     if (abortRef.current) {
       abortRef.current();
@@ -50,18 +63,7 @@ export function useCSV() {
       },
       complete() {
         if (aborted) return;
-        if (rows.length > 0) {
-          headers = Object.keys(rows[0]);
-        }
-        setCsvData({
-          headers,
-          rows,
-          fileName: file.name,
-          fileSize: file.size,
-          totalRows: rows.length,
-        });
-        setIsLoading(false);
-        setProgress(100);
+        setDataFromRows(rows, file.name);
         abortRef.current = null;
       },
       error(err) {
@@ -80,5 +82,27 @@ export function useCSV() {
     setProgress(0);
   }, []);
 
-  return { csvData, isLoading, error, progress, parseCSV, clearData };
+  const loadTestCSV = useCallback(async (url: string, label: string) => {
+    setIsLoading(true);
+    setError(null);
+    setCsvData(null);
+    setProgress(0);
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`无法加载测试数据 (${res.status})`);
+      const text = await res.text();
+
+      const result = Papa.parse<CSVRow>(text, { header: true });
+      if (result.errors.length > 0) {
+        console.warn('CSV parse warnings:', result.errors);
+      }
+      setDataFromRows(result.data, label);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加载失败');
+      setIsLoading(false);
+    }
+  }, [setDataFromRows]);
+
+  return { csvData, isLoading, error, progress, parseCSV, clearData, loadTestCSV };
 }
